@@ -48,7 +48,7 @@ Legenda: `[ ]` do zrobienia · `[~]` w toku · `[x]` zrobione
 
 ## Milestone 5 — Backend: fundament (Spring Boot + Postgres)
 > Patrz ADR-005. Katalog `backend/`.
-- [ ] Inicjalizacja projektu Spring Boot (Maven/Gradle) w `backend/`
+- [x] Inicjalizacja projektu Spring Boot (Maven/Gradle) w `backend/`
 - [ ] Konfiguracja Postgres (lokalnie: Docker Compose) + Flyway/Liquibase do migracji
 - [ ] Encje/tabele: `tracked_products`, `price_offers`, `analysis_results`
 - [ ] REST endpoint: zgłoszenie śledzenia produktu (`install_id` + `ProductQuery`)
