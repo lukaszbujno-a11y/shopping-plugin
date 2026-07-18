@@ -6,7 +6,11 @@
 Legenda: `[ ]` do zrobienia · `[~]` w toku · `[x]` zrobione
 
 ## Milestone 0 — Fundament projektu
+- [x] Commit-msg hook: sprawdzanie gramatyki EN przez LanguageTool (ADR-004)
 - [ ] Inicjalizacja `package.json`, `tsconfig.json` (strict)
+- [ ] Skrypt `prepare` w `package.json` (`git config core.hooksPath .githooks`),
+      żeby `npm install` aktywował commit-msg hook automatycznie zamiast
+      ręcznego kroku z README
 - [ ] Wybór i konfiguracja bundlera (Vite/esbuild) → ADR
 - [ ] ESLint + Prettier + skrypty `lint` / `typecheck` / `build`
 - [ ] Szkielet `manifest.json` (MV3) + ikony placeholder

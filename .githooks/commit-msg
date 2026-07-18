@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Checks commit messages for English grammar/spelling via the LanguageTool
+# public API. Warns by default; does not block the commit unless
+# COMMIT_MSG_STRICT=1 is set. See docs/DECISIONS.md (ADR-004) for why the
+# commit message text leaves the machine, and docs/CONVENTIONS.md for how
+# to enable/skip this hook.
+set -euo pipefail
+
+commit_msg_file="$1"
+
+# Strip git's own comment lines (e.g. "# Please enter the commit message...")
+msg="$(grep -v '^#' "$commit_msg_file" || true)"
+subject="$(printf '%s\n' "$msg" | head -n1)"
+
+# Nothing to check, or a commit type that's exempt from prose review.
+case "$subject" in
+  ""|Merge\ *|fixup!*|squash!*) exit 0 ;;
+esac
+
+if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  echo "⚠️  commit-msg: curl/jq not found — skipping English check." >&2
+  exit 0
+fi
+
+# UPPERCASE_SENTENCE_START is disabled: `type(scope): opis` intentionally
+# lowercases the text after the colon, which the rule can't distinguish
+# from a real sentence-start error.
+response="$(curl -s --fail --max-time 10 \
+  --data-urlencode "text=${msg}" \
+  --data "language=en-US" \
+  --data "disabledRules=UPPERCASE_SENTENCE_START" \
+  "https://api.languagetool.org/v2/check" 2>/dev/null)" || {
+  echo "⚠️  commit-msg: could not reach LanguageTool API — skipping English check." >&2
+  exit 0
+}
+
+count="$(printf '%s' "$response" | jq '.matches | length' 2>/dev/null || echo 0)"
+
+if [ "${count:-0}" -gt 0 ]; then
+  echo "" >&2
+  echo "📝 LanguageTool found $count issue(s) in your commit message:" >&2
+  echo "" >&2
+  printf '%s' "$response" | jq -r '.matches[] | "  • \(.message)\n    → \"\(.context.text)\"\n"' >&2
+
+  if [ "${COMMIT_MSG_STRICT:-0}" = "1" ]; then
+    echo "❌ COMMIT_MSG_STRICT=1 — fix the issues above, or commit with --no-verify." >&2
+    exit 1
+  fi
+
+  echo "ℹ️  Warning only — commit proceeds. Set COMMIT_MSG_STRICT=1 to block instead." >&2
+  echo "" >&2
+fi
+
+exit 0

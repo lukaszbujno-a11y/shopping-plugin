@@ -36,3 +36,26 @@ Szablon:
 - Kontekst: Skąd pobieramy ceny — własny scraping vs publiczne API porównywarek.
   Wpływ na legalność (ToS sklepów), koszt, niezawodność.
 - Decyzja: —
+
+## ADR-004: Sprawdzanie gramatyki commit message przez LanguageTool API
+- Data: 2026-07-18
+- Status: Zaakceptowane
+- Kontekst: Autor uczy się angielskiego i chce, żeby commity były poprawne
+  gramatycznie, z wyjaśnieniem błędów (nie tylko detekcja PL/EN). Lokalny
+  git hook `commit-msg` (`.githooks/commit-msg`) wysyła treść commit message
+  do publicznego API `api.languagetool.org` i wypisuje sugestie w terminalu.
+  To jedyne miejsce w projekcie, gdzie jakikolwiek tekst opuszcza maszynę bez
+  udziału użytkownika strony sklepu — dotyczy to wyłącznie treści commitów
+  (dev-tooling), nie danych z rozszerzenia/stron sklepów.
+- Decyzja: Używamy publicznego, darmowego API LanguageTool zamiast
+  self-hosted (Docker) dla prostoty setupu. Hook jest domyślnie
+  ostrzegawczy (nie blokuje commita) — blokowanie włącza się przez
+  `COMMIT_MSG_STRICT=1`. Hook aktywuje się lokalnie przez
+  `git config core.hooksPath .githooks` (nie jest globalny ani wymuszony
+  przez CI).
+- Konsekwencje: Treść commit message (nie kod, nie dane ze stron sklepów)
+  jest wysyłana do zewnętrznego serwisu przy każdym commicie na maszynach,
+  które włączyły ten hook. Wymaga sieci — offline hook po prostu pomija
+  sprawdzanie (fail-open). Jeśli w przyszłości prywatność treści commitów
+  stanie się problemem, można przejść na self-hosted LanguageTool (Docker)
+  bez zmiany interfejsu hooka.

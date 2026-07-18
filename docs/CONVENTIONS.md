@@ -40,6 +40,15 @@
 - UI — smoke testy renderowania.
 
 ## Commity
-- Konwencja: `type(scope): opis` (np. `feat(core): dodaj matching po EAN`).
+- Konwencja: `type(scope): opis` (np. `feat(core): add EAN-based matching`).
 - Typy: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`.
-- Commit tylko na wyraźną prośbę użytkownika, na branchu (nie na `main`).
+- **Opis zawsze po angielsku.** Commit tylko na wyraźną prośbę użytkownika,
+  na branchu (nie na `main`).
+- Sprawdzanie gramatyki: `.githooks/commit-msg` wysyła treść commita do
+  LanguageTool i wypisuje sugestie (patrz ADR-004 w `DECISIONS.md`).
+  Domyślnie tylko ostrzega, nie blokuje. Hook trzeba aktywować raz per klon:
+  ```
+  git config core.hooksPath .githooks
+  ```
+  Blokujące sprawdzanie: `COMMIT_MSG_STRICT=1 git commit …`.
+  Pominięcie sprawdzania dla pojedynczego commita: `git commit --no-verify`.
