@@ -48,11 +48,13 @@ Szablon:
   udziału użytkownika strony sklepu — dotyczy to wyłącznie treści commitów
   (dev-tooling), nie danych z rozszerzenia/stron sklepów.
 - Decyzja: Używamy publicznego, darmowego API LanguageTool zamiast
-  self-hosted (Docker) dla prostoty setupu. Hook jest domyślnie
-  ostrzegawczy (nie blokuje commita) — blokowanie włącza się przez
-  `COMMIT_MSG_STRICT=1`. Hook aktywuje się lokalnie przez
-  `git config core.hooksPath .githooks` (nie jest globalny ani wymuszony
-  przez CI).
+  self-hosted (Docker) dla prostoty setupu. Hook domyślnie **blokuje**
+  commit przy znalezionym błędzie (`exit 1`) — wersja ostrzegawcza
+  (pierwotna decyzja) okazała się bezużyteczna w praktyce: output trafiał
+  do kanału Output → Git w VSCode i ginął niezauważony. Zejście do trybu
+  ostrzegawczego dla pojedynczego commita: `COMMIT_MSG_STRICT=0`. Hook
+  aktywuje się lokalnie przez `git config core.hooksPath .githooks` (nie
+  jest globalny ani wymuszony przez CI).
 - Konsekwencje: Treść commit message (nie kod, nie dane ze stron sklepów)
   jest wysyłana do zewnętrznego serwisu przy każdym commicie na maszynach,
   które włączyły ten hook. Wymaga sieci — offline hook po prostu pomija

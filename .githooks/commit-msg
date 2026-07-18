@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Checks commit messages for English grammar/spelling via the LanguageTool
-# public API. Warns by default; does not block the commit unless
-# COMMIT_MSG_STRICT=1 is set. See docs/DECISIONS.md (ADR-004) for why the
-# commit message text leaves the machine, and docs/CONVENTIONS.md for how
-# to enable/skip this hook.
+# public API. Blocks the commit on any finding by default (silent warnings
+# in VS Code's Source Control panel go unnoticed — see docs/DECISIONS.md
+# ADR-004). Set COMMIT_MSG_STRICT=0 to downgrade to a warning for one
+# commit, or use `git commit --no-verify` to skip the check entirely.
 set -euo pipefail
 
 commit_msg_file="$1"
@@ -42,13 +42,13 @@ if [ "${count:-0}" -gt 0 ]; then
   echo "" >&2
   printf '%s' "$response" | jq -r '.matches[] | "  • \(.message)\n    → \"\(.context.text)\"\n"' >&2
 
-  if [ "${COMMIT_MSG_STRICT:-0}" = "1" ]; then
-    echo "❌ COMMIT_MSG_STRICT=1 — fix the issues above, or commit with --no-verify." >&2
+  if [ "${COMMIT_MSG_STRICT:-1}" = "0" ]; then
+    echo "ℹ️  COMMIT_MSG_STRICT=0 — warning only, commit proceeds." >&2
+    echo "" >&2
+  else
+    echo "❌ Fix the issues above, retry, or commit with --no-verify / COMMIT_MSG_STRICT=0." >&2
     exit 1
   fi
-
-  echo "ℹ️  Warning only — commit proceeds. Set COMMIT_MSG_STRICT=1 to block instead." >&2
-  echo "" >&2
 fi
 
 exit 0

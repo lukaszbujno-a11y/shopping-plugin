@@ -46,9 +46,12 @@
   na branchu (nie na `main`).
 - Sprawdzanie gramatyki: `.githooks/commit-msg` wysyła treść commita do
   LanguageTool i wypisuje sugestie (patrz ADR-004 w `DECISIONS.md`).
-  Domyślnie tylko ostrzega, nie blokuje. Hook trzeba aktywować raz per klon:
+  **Domyślnie blokuje commit**, jeśli znajdzie błąd (samo ostrzeżenie łatwo
+  przeoczyć np. w panelu Source Control w VSCode). Hook trzeba aktywować raz
+  per klon:
   ```
   git config core.hooksPath .githooks
   ```
-  Blokujące sprawdzanie: `COMMIT_MSG_STRICT=1 git commit …`.
+  Zejście do trybu tylko-ostrzegawczego dla jednego commita:
+  `COMMIT_MSG_STRICT=0 git commit …`.
   Pominięcie sprawdzania dla pojedynczego commita: `git commit --no-verify`.
