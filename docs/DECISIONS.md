@@ -124,3 +124,29 @@ Szablon:
   monitorowania przy skalowaniu. Jeśli w przyszłości niezależność od
   zewnętrznego dostawcy stanie się priorytetem, można rozważyć self-hosted
   model bez zmiany kontraktu `/v1/analyze`.
+
+## ADR-007: Migracje schematu Postgres przez Flyway (nie Liquibase)
+
+- Data: 2026-07-18
+- Status: Zaakceptowane
+- Kontekst: ADR-005 wymaga trwałej migracji schematu Postgres w backendzie.
+  Do wyboru: Flyway (proste migracje SQL, kolejność po numerze wersji) vs
+  Liquibase (changelogi XML/YAML/JSON, więcej funkcji jak rollback per
+  changeset, ale wyższy próg wejścia).
+- Decyzja: Flyway. Migracje jako zwykłe pliki SQL
+  (`backend/src/main/resources/db/migration/V{n}__opis.sql`) — najprostszy
+  model mentalny dla osoby uczącej się Spring Boota (patrz ADR-005), bez
+  dodatkowego DSL-a do nauki. Konfiguracja lokalna: Postgres przez
+  `docker-compose.yml` w katalogu głównym repo, dane logowania przez `.env`
+  (gitignored, wzorzec w `.env.example`) — zgodnie z zasadą „bez sekretów w
+  repo” z `CLAUDE.md`. `application.yml` ma domyślne wartości
+  (`shopping_plugin`/`shopping_plugin`) spójne z `.env.example`, więc backend
+  łączy się od razu bez eksportowania zmiennych ręcznie.
+- Konsekwencje: Zależność `org.flywaydb:flyway-core` sama w sobie **nie
+  wystarcza** w Spring Boot 4 — autokonfiguracja Flyway przeniosła się do
+  osobnego modułu `org.springframework.boot:spring-boot-flyway`, który trzeba
+  dodać jawnie (bez niego Flyway milczy — nie loguje nic i nie tworzy
+  `flyway_schema_history`, bez błędu). Ten moduł jest już dodany w
+  `backend/pom.xml`. Rollback pojedynczej migracji wymaga ręcznego SQL-a
+  (Flyway Community nie ma automatycznego rollbacku) — akceptowalne przy
+  obecnej skali projektu.
