@@ -24,26 +24,52 @@ Legenda: `[ ]` do zrobienia · `[~]` w toku · `[x]` zrobione
 - [ ] Typ `ProductQuery` w `shared/`
 - [ ] Testy extractorów na fixture'ach
 
-## Milestone 2 — Warstwa cen
-- [ ] Interfejs `PriceProvider` + typy `PriceResult`
-- [ ] Pierwszy provider (mock/lokalny) do testów E2E
-- [ ] Service worker: odbiór wiadomości, orkiestracja providerów
-- [ ] Cache wyników w `chrome.storage`
-- [ ] Matching produktów (EAN → fuzzy nazwa)
+## Milestone 2 — Integracja rozszerzenia z backendem
+> Rewizja: patrz [ADR-005](DECISIONS.md#adr-005-backend-spring-boot--postgres--serwis-analiz-python).
+> Lokalny `PriceProvider`/matching w rozszerzeniu **nie jest już rozwijany** —
+> tę odpowiedzialność przejmuje backend (Milestone 5–7 niżej). Rozszerzenie
+> tylko woła API i wyświetla wynik.
+- [ ] `install_id`: generowanie i przechowywanie w `chrome.storage`
+- [ ] Klient API backendu w service workerze (dodanie produktu do śledzenia,
+      odpytanie o status/wynik)
+- [ ] Typy `ProductQuery`, `PriceResult`, `AnalysisResult` w `shared/`
+      (współdzielone z kontraktem API backendu)
+- [ ] Cache ostatniego wyniku w `chrome.storage` (szybki podgląd bez roundtripu)
 
 ## Milestone 3 — UI
 - [ ] Badge/overlay wstrzykiwany przez content script
-- [ ] Popup z listą ofert (sortowanie po cenie)
-- [ ] Strona opcji (źródła, waluta, próg alertu)
+- [ ] Popup: status śledzenia, cena, alternatywy, plusy/minusy (z backendu)
+- [ ] Strona opcji (waluta, próg alertu)
 
-## Milestone 4 — Utwardzenie
+## Milestone 4 — Utwardzenie rozszerzenia
 - [ ] Minimalizacja permissions w manifeście
-- [ ] Throttling/kolejka zapytań do źródeł
-- [ ] Obsługa błędów i stany puste w UI
+- [ ] Obsługa błędów i stany puste w UI (backend niedostępny, brak wyniku)
 - [ ] Build produkcyjny + paczka do Chrome Web Store / AMO
+
+## Milestone 5 — Backend: fundament (Spring Boot + Postgres)
+> Patrz ADR-005. Katalog `backend/`.
+- [ ] Inicjalizacja projektu Spring Boot (Maven/Gradle) w `backend/`
+- [ ] Konfiguracja Postgres (lokalnie: Docker Compose) + Flyway/Liquibase do migracji
+- [ ] Encje/tabele: `tracked_products`, `price_offers`, `analysis_results`
+- [ ] REST endpoint: zgłoszenie śledzenia produktu (`install_id` + `ProductQuery`)
+- [ ] REST endpoint: status/wynik śledzenia dla rozszerzenia
+
+## Milestone 6 — Backend: skanowanie cen
+- [ ] Interfejs `PriceSourceClient` + pierwsza implementacja (mock/lokalna) do testów E2E
+- [ ] Scheduler (`@Scheduled`) do cyklicznego odświeżania cen śledzonych produktów
+- [ ] Throttling/kolejka zapytań per źródło
+- [ ] Zapis wyników do `price_offers`
+
+## Milestone 7 — AI service (Python): alternatywy i plusy/minusy
+> Patrz ADR-006. Katalog `ai-service/`.
+- [ ] Szkielet FastAPI + endpoint `/v1/analyze`
+- [ ] `AlternativeFinder` (matching podobnych produktów)
+- [ ] `ProsConsGenerator` — wywołanie zewnętrznego LLM na bazie specyfikacji/opisu
+- [ ] Backend: integracja z `/v1/analyze`, zapis do `analysis_results`
 
 ## Backlog (niezaplanowane)
 - [ ] Historia cen produktu
-- [ ] Alerty o spadku ceny
+- [ ] Alerty o spadku ceny (teraz realne dzięki schedulerowi z Milestone 6)
 - [ ] Wsparcie wielu walut / regionów
 - [ ] Firefox (weryfikacja różnic MV3)
+- [ ] Self-hosted LLM zamiast zewnętrznego dostawcy (patrz ADR-006, konsekwencje)

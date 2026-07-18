@@ -61,3 +61,66 @@ Szablon:
   sprawdzanie (fail-open). Jeśli w przyszłości prywatność treści commitów
   stanie się problemem, można przejść na self-hosted LanguageTool (Docker)
   bez zmiany interfejsu hooka.
+
+## ADR-005: Backend (Spring Boot + Postgres) + serwis analiz (Python)
+- Data: 2026-07-18
+- Status: Zaakceptowane
+- Kontekst: Pierwotny model (ADR-001, ARCHITECTURE.md) zakładał rozszerzenie
+  w pełni client-side, bez backendu. Chcemy jednak: śledzenie produktu w
+  czasie z cyklicznym odświeżaniem ceny, wyszukiwanie alternatyw i generowanie
+  podsumowania plusów/minusów — to wymaga trwałego stanu po stronie serwera
+  i mocy obliczeniowej nieadekwatnej dla service workera. Dodatkowo autor
+  uczy się Spring Boota i chce go zastosować praktycznie w tym projekcie —
+  to również ważny czynnik przy wyborze stacku backendu (nie tylko czysto
+  techniczny).
+- Decyzja:
+  - **Backend**: Spring Boot + PostgreSQL, REST API. Odpowiada za: przyjęcie
+    zgłoszenia śledzenia produktu, trwałość danych, harmonogram odświeżania
+    cen (`@Scheduled`, np. co ~6h) przez warstwę `PriceSourceClient` —
+    serwerowy odpowiednik `PriceProvider` z rozszerzenia (interfejs + jedna
+    implementacja per sklep, dodawana bez zmian w reszcie systemu).
+  - **AI service**: osobny proces Python (FastAPI). Odpowiada za wyszukiwanie
+    alternatyw i generowanie plusów/minusów (patrz ADR-006). Komunikacja
+    backend → AI service przez wersjonowany kontrakt REST (`/v1/analyze`),
+    żeby oba serwisy mogły ewoluować niezależnie.
+  - **Śledzenie jest anonimowe, per-instalacja rozszerzenia** — `install_id`
+    generowany lokalnie w `chrome.storage`, wysyłany z każdym requestem;
+    brak logowania/kont użytkowników.
+  - **Rozszerzenie staje się cienkim klientem**: ekstrakcja produktu ze
+    strony (bez zmian) + wywołania API backendu + wyświetlanie wyniku.
+    Lokalny `PriceProvider`/matching opisany w ARCHITECTURE.md/ADR-001 nie
+    jest już rozwijany po stronie klienta — tę odpowiedzialność przejmuje
+    backend.
+  - **Struktura repo**: monorepo, top-level `extension/`, `backend/`,
+    `ai-service/`, `docs/` (dotychczasowa zawartość `src/` z ARCHITECTURE.md
+    przenosi się pod `extension/`).
+- Konsekwencje: Dane o śledzonych produktach (URL, tytuł, EAN) trwale
+  opuszczają maszynę użytkownika i są przechowywane w Postgres na serwerze —
+  uchyla to wcześniejsze założenie „zero danych na zewnątrz” i wymaga jasnej
+  informacji dla użytkownika w UI rozszerzenia o tym, co i dlaczego zbieramy.
+  Utrzymanie trzech stacków (TypeScript/Java/Python) zamiast jednego to
+  świadomy koszt, akceptowalny częściowo dlatego, że backend służy też jako
+  nauka Spring Boota. Wymaga hostingu serwera i bazy (koszt operacyjny),
+  którego wcześniej nie było. Otwiera drogę do pozycji z Backlogu (historia
+  cen, alerty o spadku ceny) bez dalszej przebudowy architektury, bo dane są
+  już trwałe po stronie serwera.
+
+## ADR-006: Plusy/minusy produktu generowane przez zewnętrzny LLM
+- Data: 2026-07-18
+- Status: Zaakceptowane
+- Kontekst: Po zebraniu ofert cenowych (ADR-005) trzeba wygenerować dla
+  użytkownika czytelne podsumowanie plusów/minusów produktu. Alternatywa —
+  ekstrakcja z realnych recenzji przez scraping + własny NLP — jest trudniejsza
+  technicznie i ryzykowna prawnie (ToS sklepów/porównywarek).
+- Decyzja: AI service (Python) woła zewnętrzny model LLM, przekazując treść
+  specyfikacji/opisu produktu (dane produktowe, nie dane osobowe użytkownika)
+  i zwraca ustrukturyzowane podsumowanie zapisywane w
+  `analysis_results.pros_cons`.
+- Konsekwencje: Treść produktu (nie dane użytkownika) opuszcza infrastrukturę
+  projektu i trafia do zewnętrznego dostawcy AI przy każdej analizie — kolejny,
+  świadomy punkt wycieku danych obok samego backendu (ADR-005), analogiczny
+  w duchu do ADR-004 (LanguageTool), ale dla ścieżki produktowej, nie
+  dev-tooling. Koszt per-request zależny od dostawcy/modelu — do
+  monitorowania przy skalowaniu. Jeśli w przyszłości niezależność od
+  zewnętrznego dostawcy stanie się priorytetem, można rozważyć self-hosted
+  model bez zmiany kontraktu `/v1/analyze`.

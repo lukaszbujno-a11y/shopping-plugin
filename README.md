@@ -11,4 +11,4 @@ git config core.hooksPath .githooks
 ```
 
 This is a per-clone setting (git never runs repo-tracked hooks automatically
-for security reasons), so it must be run again on every fresh clone/machine. 
+for security reasons), so it must be run again on every fresh clone/machine.  
